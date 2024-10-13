@@ -4,7 +4,6 @@ use std::{collections::{HashMap, HashSet}, hash::Hash, thread, time::Duration};
 struct Sudoku {
     grid: [u8; 81],
     empty_cell_token: u8,
-    state: HashMap<[u8; 81], [u8; 81]>
 }
 
 impl Sudoku{
@@ -13,7 +12,6 @@ impl Sudoku{
         let sudoku = Sudoku {
             grid,
             empty_cell_token: 0,
-            state: HashMap::new()
         };
         sudoku
     }
