@@ -157,8 +157,7 @@ impl Sudoku{
         true
     }
 
-
-    fn next_zero(&self) -> Option<usize> {
+    fn next_empty_cell(&self) -> Option<usize> {
         // return index of an empty cell in the grid (row-major order)
         // if no cell is empty, return None
         for i in 0..9 {
@@ -181,7 +180,7 @@ impl Sudoku{
         // It serve us as a memory of recent updates
         let mut path: Vec<(usize, usize)> = Vec::new();
         let mut digits_index_to_try: usize = 0;
-        while let Some(grid_idx) = self.next_zero() {
+        while let Some(grid_idx) = self.next_empty_cell() {
             let id_row = grid_idx/9;
             let id_col = grid_idx%9;
             let digits = self.valid_digits(id_row, id_col);
