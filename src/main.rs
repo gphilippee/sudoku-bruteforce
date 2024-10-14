@@ -75,6 +75,44 @@ impl Sudoku{
         false
     }
 
+    fn empty_cells(&self) -> u8 {
+        // count number of empty cells
+        let mut counter: u8 = 0;
+        for elt in &self.grid {
+            if elt == &self.empty_cell_token {
+                counter += 1;
+            }
+        }
+        counter
+    }
+
+    fn next_empty_cell(&self) -> Option<usize> {
+        // return index of an empty cell in the grid (row-major order)
+        // if no cell is empty, return None
+        for i in 0..9 {
+            for j in 0..9 {
+                if self.grid[i*9+j] == self.empty_cell_token {
+                    return Some(i*9 + j);
+                }
+            }
+        }
+        None
+    }
+
+    fn get_empty_cells(&self) -> Vec<usize> {
+        // get indexes of empty cells in the grid
+        let mut indexes: Vec<usize> = Vec::new();
+        for i in 0..9 {
+            for j in 0..9 {
+                let idx = i * 9 + j;
+                if self.grid[idx] == self.empty_cell_token {
+                    indexes.push(idx);
+                }
+            }
+        }
+        indexes
+    }
+
     fn valid_digits(&self, i: usize, j: usize) -> Vec<u8> {
         // given cell with row i and column j, return possible digits
         let mut possible_digits: Vec<u8> = vec![1,2,3,4,5,6,7,8,9];
@@ -94,17 +132,6 @@ impl Sudoku{
             }
         }
         possible_digits
-    }
-
-    fn empty_cells(&self) -> u8 {
-        // count number of empty cells
-        let mut counter: u8 = 0;
-        for elt in &self.grid {
-            if elt == &self.empty_cell_token {
-                counter += 1;
-            }
-        }
-        counter
     }
 
     fn fill_one_possibility_cells(&mut self) -> u8 {
@@ -157,18 +184,6 @@ impl Sudoku{
         true
     }
 
-    fn next_empty_cell(&self) -> Option<usize> {
-        // return index of an empty cell in the grid (row-major order)
-        // if no cell is empty, return None
-        for i in 0..9 {
-            for j in 0..9 {
-                if self.grid[i*9+j] == self.empty_cell_token {
-                    return Some(i*9 + j);
-                }
-            }
-        }
-        None
-    }
  
     fn brute_force(&mut self) {
         // To reduce the search space, fill cells with only one possibility
