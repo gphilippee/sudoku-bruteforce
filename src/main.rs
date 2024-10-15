@@ -1,7 +1,8 @@
 use core::panic;
-use std::{collections::{HashMap, HashSet}, hash::Hash, thread, time::Duration};
+use colored::Colorize;
 
 struct Sudoku {
+    init_grid: [u8; 81],
     grid: [u8; 81],
     empty_cell_token: u8,
 }
@@ -10,6 +11,7 @@ impl Sudoku{
     fn new(grid: [u8; 81]) -> Sudoku {
         // create a new object with the input grid
         let sudoku = Sudoku {
+            init_grid: grid,
             grid,
             empty_cell_token: 0,
         };
@@ -42,26 +44,26 @@ impl Sudoku{
     }
 
     fn show(&self) {
-        let mut grid: String = String::new();
+        println!();
         for i in 0..81 {
             let cell = self.grid[i];
-            if cell == 0 {
-                grid += ". ";
+            if cell == self.empty_cell_token {
+                print!("{}", ". ".blue());
+            } else if self.init_grid[i] == self.empty_cell_token {
+                print!("{} ", cell.to_string().green());
             } else {
-                grid += &format!("{} ", cell);
+                print!("{} ", cell);
             }
             if i % 3 == 2 {
-                grid += "| ";
+                print!("| ");
             }
             if i % 27 == 26 {
-                grid += "\n";
-                grid += &"-".repeat(23);
+                print!("\n{}", &"-".repeat(23));
             }
             if i % 9 == 8 {
-                grid += "\n";
+                println!("");
             }
         }
-        println!("{}", grid);
     }
 
     fn has_empty_cells(&self) -> bool {
