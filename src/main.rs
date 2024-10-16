@@ -1,5 +1,6 @@
 use core::panic;
 use colored::Colorize;
+use std::io::{stdout, Write};
 
 struct Sudoku {
     init_grid: [u8; 81],
@@ -44,26 +45,28 @@ impl Sudoku{
     }
 
     fn show(&self) {
-        println!();
+        let mut lock = stdout().lock();
+        write!(lock, "\n").unwrap();
         for i in 0..81 {
             let cell = self.grid[i];
             if cell == self.empty_cell_token {
-                print!("{}", ". ".blue());
+                write!(lock, "{} ", ".".blue()).unwrap();
             } else if self.init_grid[i] == self.empty_cell_token {
-                print!("{} ", cell.to_string().green());
+                write!(lock, "{} ", cell.to_string().green()).unwrap();
             } else {
-                print!("{} ", cell);
+                write!(lock, "{} ", cell).unwrap();
             }
             if i % 3 == 2 {
-                print!("| ");
+                write!(lock, "| ").unwrap();
             }
             if i % 27 == 26 {
-                print!("\n{}", &"-".repeat(23));
+                write!(lock, "\n{}", &"-".repeat(23)).unwrap();
             }
             if i % 9 == 8 {
-                println!("");
+                write!(lock, "\n").unwrap();
             }
         }
+        stdout().flush().unwrap();
     }
 
     fn has_empty_cells(&self) -> bool {
