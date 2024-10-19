@@ -1,4 +1,11 @@
+#![feature(test)]
+
+extern crate test;
+
+// only available in the nightly version
+use test::Bencher;
 use core::panic;
+use std::{collections::{HashMap, HashSet}, hash::Hash, io::empty, path::Path, thread, time::Duration};
 use colored::Colorize;
 use std::io::{stdout, Write};
 
@@ -7,6 +14,70 @@ struct Sudoku {
     grid: [u8; 81],
     empty_cell_token: u8,
 }
+
+#[derive(PartialEq)]
+enum Step {
+    NextDigit,
+    NextCell,
+    CurrDigit,
+}
+
+struct PathElement {
+    idx_cell: usize,
+    valid_digits: Vec<u8>,
+    idx_digit: usize,
+}
+
+impl PathElement {
+    fn get_digit(&self) -> u8 {
+        self.valid_digits[self.idx_digit]
+    }
+
+    fn increase_digit(&mut self) -> Result<(), ()>{
+        // check if the increase will produce an index error later
+        if self.idx_digit >= self.valid_digits.len() {
+            Err(())
+        } else {
+            self.idx_digit += 1;
+            Ok(())
+        }
+    }
+}
+
+static hard_grid: [u8; 81] = [
+    0,5,0,3,0,2,0,8,0,
+    0,0,0,0,8,0,0,0,0,
+    0,2,0,1,0,9,0,7,0,
+    6,0,0,0,0,0,0,0,5,
+    0,0,4,2,0,3,7,0,0,
+    9,8,0,0,0,0,0,1,3,
+    0,4,0,0,0,0,0,2,0,
+    0,0,1,9,0,4,6,0,0,
+    0,0,5,0,0,0,1,0,0
+];
+
+static easy_grid: [u8; 81] = [
+    0,7,0,5,8,3,0,2,0,
+    0,5,9,2,0,0,3,0,0,
+    3,4,0,0,0,6,5,0,7,
+    7,9,5,0,0,0,6,3,2,
+    0,0,3,6,9,7,1,0,0,
+    6,8,0,0,0,2,7,0,0,
+    9,1,4,8,3,5,0,7,6,
+    0,3,0,7,0,1,4,9,5,
+    5,6,7,4,2,9,0,1,3
+];
+static solved_grid: [u8; 81] = [
+    1,7,6,5,8,3,9,2,4, 
+    8,5,9,2,7,4,3,6,1, 
+    3,4,2,9,1,6,5,8,7, 
+    7,9,5,1,4,8,6,3,2, 
+    4,2,3,6,9,7,1,5,8, 
+    6,8,1,3,5,2,7,4,9, 
+    9,1,4,8,3,5,2,7,6, 
+    2,3,8,7,6,1,4,9,5, 
+    5,6,7,4,2,9,8,1,3,
+];
 
 impl Sudoku{
     fn new(grid: [u8; 81]) -> Sudoku {
@@ -192,117 +263,60 @@ impl Sudoku{
  
     fn brute_force(&mut self) {
         // To reduce the search space, fill cells with only one possibility
-        let filled_cells = self.fill_one_possibility_cells();
-        println!("{} cells filled with only one possibility", filled_cells);
-
-        // When we add a number in the sudoku grid, we will add:
-        // (row number * 9 + column number, index in valid digits) in the path
-        // It serve us as a memory of recent updates
-        let mut path: Vec<(usize, usize)> = Vec::new();
-        let mut digits_index_to_try: usize = 0;
-        while let Some(grid_idx) = self.next_empty_cell() {
-            let id_row = grid_idx/9;
-            let id_col = grid_idx%9;
-            let digits = self.get_valid_digits(id_row, id_col);
-            if let Some(d) = digits.get(digits_index_to_try) {
-                self.grid[grid_idx] = *d;
-                path.push((grid_idx, digits_index_to_try));
-                digits_index_to_try = 0;
-            } else if self.has_empty_cells() {
-                // No digits available for this position in `curr_grid`
-                // Check if the sudoku is solved
-
-                // The current branch is false, we have to retry higher
-                // Pop the last element
-                let (idx, idx_digits) = path.pop().unwrap();
-                digits_index_to_try = idx_digits + 1;
-                self.grid[idx] = self.empty_cell_token;
-            }
-            self.show();
-            let dur = Duration::from_millis(10);
-            thread::sleep(dur);
-        }
-        // No more zeroes
-        // Check if the grid is finished
-        if self.validate() {
-            println!("Finished successfully");
-            // self.show();
-        } else {
-            panic!("Something went wrong!")
-        }
-    }
-
-    fn fast_brute_force(&mut self) {
-        // To reduce the search space, fill cells with only one possibility
         let n_filled_cells = self.fill_one_possibility_cells();
         println!("{} cells filled with only one possibility", n_filled_cells);
 
         let empty_cells = self.get_empty_cells();
         println!("Empty cells are {:?}", empty_cells);
 
-        // let curr_empty_cell: Option<usize> = Some(empty_cells[0]);
+        // Initialize variables
         let mut idx_empty_cell: usize = 0;
-
-        // When we add a number in the sudoku grid, we will add:
-        // (row number * 9 + column number, valid digits, index in valid digits) in the path
-        // It serve us as a memory of recent updates
-        let mut path: Vec<(usize, Vec<u8>, usize)> = Vec::new();
-        let idx_cell = empty_cells[idx_empty_cell];
-        let id_row = idx_cell/9;
-        let id_col = idx_cell%9;
-        path.push((idx_cell, self.get_valid_digits(id_row, id_col), 0));
-        // let mut digits_index_to_try: usize = 0;
-        // let mut is_same_cell: bool = false;
+        let mut path: Vec<PathElement> = Vec::new();
+        let mut curr_step = Step::NextCell;
 
         while idx_empty_cell < empty_cells.len() {
-            // let idx_cell = empty_cells[idx_empty_cell];
-            // let id_row = idx_cell/9;
-            // let id_col = idx_cell%9;
-
-            // read the last value in the path
-            let (id_cell, valid_digits, idx_digit) = path.pop().unwrap();
-
-            if idx_digit >= valid_digits.len() {
-                // 1st case: we try every combination for this cell
-                // none of them is working
-                // TODO: pop if the element is not pop before
-                self.grid[id_cell] = self.empty_cell_token;
-                // increase idx_digit by 1
-                idx_empty_cell -= 1;
-                let (id_cell, valid_digits, idx_digit) = path.pop().unwrap();
-                path.push((id_cell, valid_digits, idx_digit + 1));
-            } else {
-                // set cell in grid to the new good digit
-                self.grid[id_cell] = valid_digits[idx_digit];
-                path.push((id_cell, valid_digits, idx_digit));
-                // go to the next cell
-                idx_empty_cell += 1;
-
-                if idx_empty_cell >= empty_cells.len() {
-                    break
-                };
-
+            match curr_step {
+                Step::NextCell => {
                 let idx_cell = empty_cells[idx_empty_cell];
                 let id_row = idx_cell/9;
                 let id_col = idx_cell%9;
                 let valid_digits = self.get_valid_digits(id_row, id_col);
-                path.push((idx_cell, valid_digits, 0));
+                    path.push(PathElement {
+                        idx_cell: empty_cells[idx_empty_cell], 
+                        valid_digits, 
+                        idx_digit: 0
+                    });
+                    curr_step = Step::CurrDigit;
+                },
+                Step::CurrDigit => {
+                    let last_elt: &PathElement = path.last().unwrap();
+                    if last_elt.idx_digit >= last_elt.valid_digits.len() {
+                        // current path is wrong! pop the last element and try the next digit of the previous cell
+                        self.grid[last_elt.idx_cell] = self.empty_cell_token;
+                        path.pop().unwrap();
+                        idx_empty_cell -= 1;
+                        // increment the digit of the previous cell
+                        curr_step = Step::NextDigit;
+                    } else {
+                        self.grid[last_elt.idx_cell] = last_elt.get_digit();
+                        // go to next cell
+                        idx_empty_cell += 1;
+                        curr_step = Step::NextCell;
+                    }
+                    self.show();
+                },
+                Step::NextDigit => {
+                    path.last_mut().unwrap().increase_digit().unwrap();
+                    curr_step = Step::CurrDigit;
+                }
             }
-            // self.show();
-            // let dur = Duration::from_millis(10);
-            // thread::sleep(dur);
-        };
+            let dur = Duration::from_millis(10);
+            thread::sleep(dur);
+        }
     
-        // No more empty cells
         // Check if the grid is finished
         if self.validate() {
-            println!("Finished successfully");
-            // self.show();
-        } else {
-            panic!("Something went wrong!")
-        }
-    }
-
+            println!("Finished successfully!");
             self.show();
         } else {
             panic!("Something went wrong!")
@@ -311,26 +325,6 @@ impl Sudoku{
 }
 
 fn main() {
-    let easy_grid: [u8; 81] = [
-        0,7,0,5,8,3,0,2,0,
-        0,5,9,2,0,0,3,0,0,
-        3,4,0,0,0,6,5,0,7,
-        7,9,5,0,0,0,6,3,2,
-        0,0,3,6,9,7,1,0,0,
-        6,8,0,0,0,2,7,0,0,
-        9,1,4,8,3,5,0,7,6,
-        0,3,0,7,0,1,4,9,5,
-        5,6,7,4,2,9,0,1,3];
-    let hard_grid: [u8; 81] = [
-        0,5,0,3,0,2,0,8,0,
-        0,0,0,0,8,0,0,0,0,
-        0,2,0,1,0,9,0,7,0,
-        6,0,0,0,0,0,0,0,5,
-        0,0,4,2,0,3,7,0,0,
-        9,8,0,0,0,0,0,1,3,
-        0,4,0,0,0,0,0,2,0,
-        0,0,1,9,0,4,6,0,0,
-        0,0,5,0,0,0,1,0,0];
     let mut sudoku = Sudoku::new(hard_grid);
     sudoku.show();
 
