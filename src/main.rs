@@ -236,8 +236,7 @@ impl Sudoku{
         true
     }
 
- 
-    fn brute_force(&mut self) {
+    fn brute_force(&mut self, show: bool) {
         // To reduce the search space, fill cells with only one possibility
         let n_filled_cells = self.fill_one_possibility_cells();
         println!("{} cells filled with only one possibility", n_filled_cells);
@@ -282,10 +281,12 @@ impl Sudoku{
                             curr_step = Step::CurrDigit;
                         }
                     };
+                    if show {
                     self.show();
                     // sleep between each grid
                     let dur = Duration::from_millis(10);
                     thread::sleep(dur);
+                    }
                 }
             }
         }
@@ -305,5 +306,13 @@ fn main() {
     sudoku.show();
 
     // Run brute force approach
-    sudoku.brute_force();
+    sudoku.brute_force(true);
+}
+
+#[bench]
+fn bench_brute_force(bencher: &mut Bencher) {
+    bencher.iter(|| {
+        let mut sudoku = Sudoku::new(hard_grid);
+        sudoku.brute_force(false);
+    })
 }
