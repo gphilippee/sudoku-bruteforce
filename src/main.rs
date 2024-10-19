@@ -147,41 +147,6 @@ impl Sudoku{
         stdout().flush().unwrap();
     }
 
-    fn has_empty_cells(&self) -> bool {
-        // go through the grid in a row-major order
-        // returns directly if an empty cell is found
-        for i in 0..81 {
-            if self.grid[i] == self.empty_cell_token {
-                return true
-            }
-        }
-        false
-    }
-
-    fn empty_cells(&self) -> u8 {
-        // count number of empty cells
-        let mut counter: u8 = 0;
-        for elt in &self.grid {
-            if elt == &self.empty_cell_token {
-                counter += 1;
-            }
-        }
-        counter
-    }
-
-    fn next_empty_cell(&self) -> Option<usize> {
-        // return index of an empty cell in the grid (row-major order)
-        // if no cell is empty, return None
-        for i in 0..9 {
-            for j in 0..9 {
-                if self.grid[i*9+j] == self.empty_cell_token {
-                    return Some(i*9 + j);
-                }
-            }
-        }
-        None
-    }
-
     fn get_empty_cells(&self) -> Vec<usize> {
         // get indexes of empty cells in the grid
         let mut indexes: Vec<usize> = Vec::new();
