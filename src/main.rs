@@ -226,6 +226,83 @@ impl Sudoku{
         // Check if the grid is finished
         if self.validate() {
             println!("Finished successfully");
+            // self.show();
+        } else {
+            panic!("Something went wrong!")
+        }
+    }
+
+    fn fast_brute_force(&mut self) {
+        // To reduce the search space, fill cells with only one possibility
+        let n_filled_cells = self.fill_one_possibility_cells();
+        println!("{} cells filled with only one possibility", n_filled_cells);
+
+        let empty_cells = self.get_empty_cells();
+        println!("Empty cells are {:?}", empty_cells);
+
+        // let curr_empty_cell: Option<usize> = Some(empty_cells[0]);
+        let mut idx_empty_cell: usize = 0;
+
+        // When we add a number in the sudoku grid, we will add:
+        // (row number * 9 + column number, valid digits, index in valid digits) in the path
+        // It serve us as a memory of recent updates
+        let mut path: Vec<(usize, Vec<u8>, usize)> = Vec::new();
+        let idx_cell = empty_cells[idx_empty_cell];
+        let id_row = idx_cell/9;
+        let id_col = idx_cell%9;
+        path.push((idx_cell, self.get_valid_digits(id_row, id_col), 0));
+        // let mut digits_index_to_try: usize = 0;
+        // let mut is_same_cell: bool = false;
+
+        while idx_empty_cell < empty_cells.len() {
+            // let idx_cell = empty_cells[idx_empty_cell];
+            // let id_row = idx_cell/9;
+            // let id_col = idx_cell%9;
+
+            // read the last value in the path
+            let (id_cell, valid_digits, idx_digit) = path.pop().unwrap();
+
+            if idx_digit >= valid_digits.len() {
+                // 1st case: we try every combination for this cell
+                // none of them is working
+                // TODO: pop if the element is not pop before
+                self.grid[id_cell] = self.empty_cell_token;
+                // increase idx_digit by 1
+                idx_empty_cell -= 1;
+                let (id_cell, valid_digits, idx_digit) = path.pop().unwrap();
+                path.push((id_cell, valid_digits, idx_digit + 1));
+            } else {
+                // set cell in grid to the new good digit
+                self.grid[id_cell] = valid_digits[idx_digit];
+                path.push((id_cell, valid_digits, idx_digit));
+                // go to the next cell
+                idx_empty_cell += 1;
+
+                if idx_empty_cell >= empty_cells.len() {
+                    break
+                };
+
+                let idx_cell = empty_cells[idx_empty_cell];
+                let id_row = idx_cell/9;
+                let id_col = idx_cell%9;
+                let valid_digits = self.get_valid_digits(id_row, id_col);
+                path.push((idx_cell, valid_digits, 0));
+            }
+            // self.show();
+            // let dur = Duration::from_millis(10);
+            // thread::sleep(dur);
+        };
+    
+        // No more empty cells
+        // Check if the grid is finished
+        if self.validate() {
+            println!("Finished successfully");
+            // self.show();
+        } else {
+            panic!("Something went wrong!")
+        }
+    }
+
             self.show();
         } else {
             panic!("Something went wrong!")
