@@ -5,7 +5,7 @@ extern crate test;
 // only available in the nightly version
 use test::Bencher;
 use core::panic;
-use std::{collections::{HashMap, HashSet}, hash::Hash, io::empty, path::Path, thread, time::Duration};
+use std::{thread, time::Duration};
 use colored::Colorize;
 use std::io::{stdout, Write};
 
@@ -182,7 +182,7 @@ impl Sudoku{
 
     fn fill_one_possibility_cells(&mut self) -> u8 {
         // find all cells with only one possibility and set the value
-        // for some gri,d it may reduce the search space greatly
+        // for some grid, it may reduce the search space greatly
         let mut updated_cells: u8 = 0;
         for i in 0..9 {
             for j in 0..9 {
