@@ -15,12 +15,6 @@ struct Sudoku {
     empty_cell_token: u8,
 }
 
-#[derive(PartialEq, Debug)]
-enum Step {
-    NextCell,
-    CurrDigit,
-}
-
 struct PathElement {
     idx_cell: usize,
     valid_digits: Vec<u8>,
@@ -246,11 +240,10 @@ impl Sudoku{
 
         // Initialize variables
         let mut path: Vec<PathElement> = Vec::new();
-        let mut curr_step = Step::NextCell;
+        let mut increment_path: bool = true;
 
-        while path.len() < empty_cells.len() || curr_step == Step::CurrDigit {
-            match curr_step {
-                Step::NextCell => {
+        while path.len() < empty_cells.len() {
+            if increment_path {
                     let idx_cell = empty_cells[path.len()];
                     let id_row = idx_cell/9;
                     let id_col = idx_cell%9;
@@ -264,21 +257,19 @@ impl Sudoku{
                         },
                         Err(_) => {}
                     }
-                    curr_step = Step::CurrDigit;
-                },
-                Step::CurrDigit => {
+                increment_path = false;
+            }
                     let last_elt: &mut PathElement = path.last_mut().unwrap();
                     match last_elt.increase_digit() {
                         // idx_digits increased by 1 is valid
-                        Ok(()) => {
+                Ok(_) => {
                             self.grid[last_elt.idx_cell] = last_elt.get_digit();
-                            curr_step = Step::NextCell;
+                    increment_path = true;
                         },
                         // idx_digit is superior to valid_digits
-                        Err(()) => {
+                Err(_) => {
                             self.grid[last_elt.idx_cell] = self.empty_cell_token;
                             path.pop().unwrap();
-                            curr_step = Step::CurrDigit;
                         }
                     };
                     if show {
@@ -286,8 +277,6 @@ impl Sudoku{
                     // sleep between each grid
                     let dur = Duration::from_millis(10);
                     thread::sleep(dur);
-                    }
-                }
             }
         }
     
