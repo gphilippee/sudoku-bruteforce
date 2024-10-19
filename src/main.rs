@@ -118,7 +118,7 @@ impl Sudoku{
         indexes
     }
 
-    fn valid_digits(&self, i: usize, j: usize) -> Vec<u8> {
+    fn get_valid_digits(&self, i: usize, j: usize) -> Vec<u8> {
         // given cell with row i and column j, return possible digits
         let mut possible_digits: Vec<u8> = vec![1,2,3,4,5,6,7,8,9];
         for d in &self.get_column(j) {
@@ -146,7 +146,7 @@ impl Sudoku{
         for i in 0..9 {
             for j in 0..9 {
                 if self.grid[i*9+j] == self.empty_cell_token {
-                    let digits = self.valid_digits(i, j);
+                    let digits = self.get_valid_digits(i, j);
                     if digits.len() == 1 {
                         self.grid[i*9+j] = digits[0];
                         updated_cells += 1;
@@ -203,7 +203,7 @@ impl Sudoku{
         while let Some(grid_idx) = self.next_empty_cell() {
             let id_row = grid_idx/9;
             let id_col = grid_idx%9;
-            let digits = self.valid_digits(id_row, id_col);
+            let digits = self.get_valid_digits(id_row, id_col);
             if let Some(d) = digits.get(digits_index_to_try) {
                 self.grid[grid_idx] = *d;
                 path.push((grid_idx, digits_index_to_try));
