@@ -15,7 +15,7 @@ struct Sudoku {
     empty_cell_token: u8,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum Step {
     NextCell,
     CurrDigit,
@@ -24,22 +24,30 @@ enum Step {
 struct PathElement {
     idx_cell: usize,
     valid_digits: Vec<u8>,
-    idx_digit: usize,
+    idx_digit: Option<usize>,
 }
 
 impl PathElement {
     fn get_digit(&self) -> u8 {
-        self.valid_digits[self.idx_digit]
+        self.valid_digits[self.idx_digit.unwrap()]
     }
 
     fn increase_digit(&mut self) -> Result<(), ()>{
         // check if the increase will produce an index error later
-        if self.idx_digit >= self.valid_digits.len() {
-            Err(())
+        if let Some(idx_digit) = self.idx_digit {
+            if idx_digit + 1 >= self.valid_digits.len() {
+                Err(())
+            } else {
+                // increase by 1
+                self.idx_digit = Some(self.idx_digit.unwrap() + 1);
+                Ok(())
+            }
         } else {
-            self.idx_digit += 1;
+            // set to 0 if it was None
+            self.idx_digit = Some(0);
             Ok(())
         }
+        
     }
 }
 
@@ -188,7 +196,7 @@ impl Sudoku{
         indexes
     }
 
-    fn get_valid_digits(&self, i: usize, j: usize) -> Vec<u8> {
+    fn get_valid_digits(&self, i: usize, j: usize) -> Result<Vec<u8>, ()> {
         // given cell with row i and column j, return possible digits
         let mut possible_digits: Vec<u8> = vec![1,2,3,4,5,6,7,8,9];
         for d in &self.get_column(j) {
@@ -206,7 +214,11 @@ impl Sudoku{
                 possible_digits.remove(idx);
             }
         }
-        possible_digits
+        if possible_digits.is_empty() {
+            Err(())
+        } else {
+            Ok(possible_digits)
+        }
     }
 
     fn fill_one_possibility_cells(&mut self) -> u8 {
@@ -216,7 +228,7 @@ impl Sudoku{
         for i in 0..9 {
             for j in 0..9 {
                 if self.grid[i*9+j] == self.empty_cell_token {
-                    let digits = self.get_valid_digits(i, j);
+                    let digits = self.get_valid_digits(i, j).unwrap();
                     if digits.len() == 1 {
                         self.grid[i*9+j] = digits[0];
                         updated_cells += 1;
@@ -269,44 +281,48 @@ impl Sudoku{
         println!("Empty cells are {:?}", empty_cells);
 
         // Initialize variables
-        let mut idx_empty_cell: usize = 0;
         let mut path: Vec<PathElement> = Vec::new();
         let mut curr_step = Step::NextCell;
 
-        while idx_empty_cell < empty_cells.len() {
+        while path.len() < empty_cells.len() || curr_step == Step::CurrDigit {
             match curr_step {
                 Step::NextCell => {
-                let idx_cell = empty_cells[idx_empty_cell];
-                let id_row = idx_cell/9;
-                let id_col = idx_cell%9;
-                    path.push(PathElement {
-                        idx_cell: empty_cells[idx_empty_cell], 
-                        valid_digits: self.get_valid_digits(id_row, id_col),
-                        idx_digit: 0
-                    });
+                    let idx_cell = empty_cells[path.len()];
+                    let id_row = idx_cell/9;
+                    let id_col = idx_cell%9;
+                    match self.get_valid_digits(id_row, id_col) {
+                        Ok(valid_digits) => {
+                            path.push(PathElement {
+                                idx_cell, 
+                                valid_digits,
+                                idx_digit: None
+                            });
+                        },
+                        Err(_) => {}
+                    }
                     curr_step = Step::CurrDigit;
                 },
                 Step::CurrDigit => {
-                    let last_elt: &PathElement = path.last().unwrap();
-                    if last_elt.idx_digit >= last_elt.valid_digits.len() {
-                        // current path is wrong! pop the last element and try the next digit of the previous cell
-                        self.grid[last_elt.idx_cell] = self.empty_cell_token;
-                        path.pop().unwrap();
-                        idx_empty_cell -= 1;
-                        // increment the digit of the previous cell
-                        path.last_mut().unwrap().increase_digit().unwrap();
-                        curr_step = Step::CurrDigit;
-                    } else {
-                        self.grid[last_elt.idx_cell] = last_elt.get_digit();
-                        // go to next cell
-                        idx_empty_cell += 1;
-                        curr_step = Step::NextCell;
-                    }
+                    let last_elt: &mut PathElement = path.last_mut().unwrap();
+                    match last_elt.increase_digit() {
+                        // idx_digits increased by 1 is valid
+                        Ok(()) => {
+                            self.grid[last_elt.idx_cell] = last_elt.get_digit();
+                            curr_step = Step::NextCell;
+                        },
+                        // idx_digit is superior to valid_digits
+                        Err(()) => {
+                            self.grid[last_elt.idx_cell] = self.empty_cell_token;
+                            path.pop().unwrap();
+                            curr_step = Step::CurrDigit;
+                        }
+                    };
                     self.show();
+                    // sleep between each grid
+                    let dur = Duration::from_millis(10);
+                    thread::sleep(dur);
                 }
             }
-            let dur = Duration::from_millis(10);
-            thread::sleep(dur);
         }
     
         // Check if the grid is finished
