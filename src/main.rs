@@ -17,7 +17,6 @@ struct Sudoku {
 
 #[derive(PartialEq)]
 enum Step {
-    NextDigit,
     NextCell,
     CurrDigit,
 }
@@ -280,10 +279,9 @@ impl Sudoku{
                 let idx_cell = empty_cells[idx_empty_cell];
                 let id_row = idx_cell/9;
                 let id_col = idx_cell%9;
-                let valid_digits = self.get_valid_digits(id_row, id_col);
                     path.push(PathElement {
                         idx_cell: empty_cells[idx_empty_cell], 
-                        valid_digits, 
+                        valid_digits: self.get_valid_digits(id_row, id_col),
                         idx_digit: 0
                     });
                     curr_step = Step::CurrDigit;
@@ -296,7 +294,8 @@ impl Sudoku{
                         path.pop().unwrap();
                         idx_empty_cell -= 1;
                         // increment the digit of the previous cell
-                        curr_step = Step::NextDigit;
+                        path.last_mut().unwrap().increase_digit().unwrap();
+                        curr_step = Step::CurrDigit;
                     } else {
                         self.grid[last_elt.idx_cell] = last_elt.get_digit();
                         // go to next cell
@@ -304,10 +303,6 @@ impl Sudoku{
                         curr_step = Step::NextCell;
                     }
                     self.show();
-                },
-                Step::NextDigit => {
-                    path.last_mut().unwrap().increase_digit().unwrap();
-                    curr_step = Step::CurrDigit;
                 }
             }
             let dur = Duration::from_millis(10);
