@@ -5,7 +5,7 @@ extern crate test;
 // only available in the nightly version
 use test::Bencher;
 use core::panic;
-use std::{thread, time::Duration};
+use std::{collections::{HashSet}, thread, time::Duration};
 use colored::Colorize;
 use std::io::{stdout, Write};
 
