@@ -1,6 +1,8 @@
 # Sudoku Solver in Rust (Brute-Force Approach)
 This repository contains a Rust implementation of a brute-force algorithm to solve a 9x9 Sudoku puzzle. The brute-force method works by trying all possible numbers in empty cells until a valid solution is found or the puzzle is determined to be unsolvable.
 
+<img src="https://github.com/user-attachments/assets/0b53a1cf-d28f-4e84-985c-45846138f861" alt="sudoku_bruteforce" width="200"/>
+
 ## Features
 * Solves standard 9x9 Sudoku puzzles.
 * Implements a backtracking algorithm to try possible solutions.
