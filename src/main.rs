@@ -3,11 +3,11 @@
 extern crate test;
 
 // only available in the nightly version
-use test::Bencher;
-use core::panic;
-use std::{collections::{HashSet}, thread, time::Duration};
 use colored::Colorize;
+use core::panic;
 use std::io::{stdout, Write};
+use std::{collections::HashSet, thread, time::Duration};
+use test::Bencher;
 
 struct Sudoku {
     init_grid: [u8; 81],
@@ -26,7 +26,7 @@ impl PathElement {
         self.valid_digits[self.idx_digit.unwrap()]
     }
 
-    fn increase_digit(&mut self) -> Result<(), ()>{
+    fn increase_digit(&mut self) -> Result<(), ()> {
         // check if the increase will produce an index error later
         if let Some(idx_digit) = self.idx_digit {
             if idx_digit + 1 >= self.valid_digits.len() {
@@ -41,7 +41,6 @@ impl PathElement {
             self.idx_digit = Some(0);
             Ok(())
         }
-        
     }
 }
 
@@ -80,7 +79,7 @@ static solved_grid: [u8; 81] = [
     5,6,7,4,2,9,8,1,3,
 ];
 
-impl Sudoku{
+impl Sudoku {
     fn new(grid: [u8; 81]) -> Sudoku {
         // create a new object with the input grid
         let sudoku = Sudoku {
@@ -93,7 +92,7 @@ impl Sudoku{
 
     fn get_row(&self, i: usize) -> &[u8] {
         // return the i-th row
-        &self.grid[i*9..(i+1)*9]
+        &self.grid[i * 9..(i + 1) * 9]
     }
 
     fn get_column(&self, i: usize) -> [u8; 9] {
@@ -110,7 +109,7 @@ impl Sudoku{
         let mut square: [u8; 9] = [0; 9];
         for k in 0..3 {
             for l in 0..3 {
-                square[k*3 + l] = self.grid[(i/3*3 + k)* 9 + (j/3*3 + l)] 
+                square[k * 3 + l] = self.grid[(i / 3 * 3 + k) * 9 + (j / 3 * 3 + l)]
             }
         }
         square
@@ -157,19 +156,19 @@ impl Sudoku{
 
     fn get_valid_digits(&self, i: usize, j: usize) -> Result<Vec<u8>, ()> {
         // given cell with row i and column j, return possible digits
-        let mut possible_digits: Vec<u8> = vec![1,2,3,4,5,6,7,8,9];
+        let mut possible_digits: Vec<u8> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
         for d in &self.get_column(j) {
-            if let Some(idx) = possible_digits.iter().position(|c| c==d) {
+            if let Some(idx) = possible_digits.iter().position(|c| c == d) {
                 possible_digits.remove(idx);
             }
         }
         for d in self.get_row(i) {
-            if let Some(idx) = possible_digits.iter().position(|c| c==d) {
+            if let Some(idx) = possible_digits.iter().position(|c| c == d) {
                 possible_digits.remove(idx);
             }
         }
         for d in &self.get_square(i, j) {
-            if let Some(idx) = possible_digits.iter().position(|c| c==d) {
+            if let Some(idx) = possible_digits.iter().position(|c| c == d) {
                 possible_digits.remove(idx);
             }
         }
@@ -186,10 +185,10 @@ impl Sudoku{
         let mut updated_cells: u8 = 0;
         for i in 0..9 {
             for j in 0..9 {
-                if self.grid[i*9+j] == self.empty_cell_token {
+                if self.grid[i * 9 + j] == self.empty_cell_token {
                     let digits = self.get_valid_digits(i, j).unwrap();
                     if digits.len() == 1 {
-                        self.grid[i*9+j] = digits[0];
+                        self.grid[i * 9 + j] = digits[0];
                         updated_cells += 1;
                     }
                 }
@@ -200,11 +199,11 @@ impl Sudoku{
 
     fn validate(&self) -> bool {
         // check if the sudoku grid is finished and correct
-        let digits: HashSet<u8> = HashSet::from([1,2,3,4,5,6,7,8,9]);
+        let digits: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
         for i in 0..9 {
             let row = self.get_row(i);
             let set = HashSet::from_iter(row.iter().cloned());
-            if digits != set{
+            if digits != set {
                 println!("Row {} is wrong", i);
                 return false;
             }
@@ -245,16 +244,16 @@ impl Sudoku{
         while path.len() < empty_cells.len() {
             if increment_path {
                     let idx_cell = empty_cells[path.len()];
-                    let id_row = idx_cell/9;
-                    let id_col = idx_cell%9;
+                let id_row = idx_cell / 9;
+                let id_col = idx_cell % 9;
                     match self.get_valid_digits(id_row, id_col) {
                         Ok(valid_digits) => {
                             path.push(PathElement {
                                 idx_cell, 
                                 valid_digits,
-                                idx_digit: None
+                            idx_digit: None,
                             });
-                        },
+                    }
                         Err(_) => {}
                     }
                 increment_path = false;
@@ -265,7 +264,7 @@ impl Sudoku{
                 Ok(_) => {
                             self.grid[last_elt.idx_cell] = last_elt.get_digit();
                     increment_path = true;
-                        },
+                }
                         // idx_digit is superior to valid_digits
                 Err(_) => {
                             self.grid[last_elt.idx_cell] = self.empty_cell_token;
