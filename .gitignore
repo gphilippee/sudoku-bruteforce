@@ -1,1 +1,5 @@
 /target
+photos/
+.DS_Store
+# pyenv
+.python-version
